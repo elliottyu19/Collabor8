@@ -1,6 +1,6 @@
-function [stop_flag,dist] = stop_flag(US2, US3, US4, US5, US6, US7, Ph, Uh, Rh)
+function [stop_flag,dist] = stop_flag(US2, US3, US4, US5, US6, US7, Ph, Uh, Rh, vmax)
      %Define position vectors for start and end points of cylinder of last 5 revolute joints of robot
-     d = zeros(length(Ph),5);
+     d = zeros(length(Ph(1,:)),5);
      U3 = US2(1:3,4);
      S3 = US3(1:3,4);
      R3 = 0.1;
@@ -18,7 +18,7 @@ function [stop_flag,dist] = stop_flag(US2, US3, US4, US5, US6, US7, Ph, Uh, Rh)
      R7 = 0.1;
 
      %Calculate distances between each robot arm segment to human
-     for i = 1:length(Ph)
+     for i = 1:length(Ph(1,:))
         d(i,1) = dcylinders([U3 S3], R3, [Ph(:,i) Uh(:,i)], Rh(i));
         d(i,2) = dcylinders([U4 S4], R4, [Ph(:,i) Uh(:,i)], Rh(i));
         d(i,3) = dcylinders([U5 S5], R5, [Ph(:,i) Uh(:,i)], Rh(i));
@@ -26,7 +26,7 @@ function [stop_flag,dist] = stop_flag(US2, US3, US4, US5, US6, US7, Ph, Uh, Rh)
         d(i,5) = dcylinders([U7 S7], R7, [Ph(:,i) Uh(:,i)], Rh(i));
      end
      %Get the Sp value
-     S = get_S();
+     S = get_S(vmax);
      
      %Find minimum distance
      dist=min(d,[],2);

@@ -3,21 +3,21 @@ clear;
 
 % Use a fixed random seed to ensure repeatable results
 
-rng(rand);
+rng(0.5);
 
 %Declare number of initialized humans
-numHum = 3;
+numHum = 1;
 
 %Declar initial position of human
 
-xh = (rand(numHum,1)-0.5)*4;
-yh = rand(numHum,1) + 1.75;
-zh = rand(numHum,1)./2 + 0.5;
+xh = (rand(numHum,1)-0.5)*4; %Generate random x values in a numHumx1 vector in intervals [-2, 2]
+yh = rand(numHum,1) + 1.75; %Generate random y values in a numHumx1 vector in intervals [1.75,2.75]
+zh = rand(numHum,1)./2 + 0.5; %Generate random z values in a numHumx1 vector in intervals [0.5,1]
 
 %Declare human randomness
 humanRandom = true;
 
-%Current Pose of human (Relative to base of coordinates)
+%Current Pose of human(s) (Relative to base of coordinates)
 
 for i = 1:numHum
     Ph(:,i) = [xh(i); yh(i); 0]; % Vector pointing to bottom of human
@@ -25,7 +25,7 @@ for i = 1:numHum
     Rh(i) = 0.1; % The radius of the human
 end
 
-% Create two platforms as start and end goals
+% Create platforms as start and end goals
 platform1 = collisionBox(0.25,0.25,0.25);
 platform1.Pose = trvec2tform([-1.6 0.8 0.125]);
 
@@ -38,7 +38,7 @@ platform3.Pose = trvec2tform([0 1.5 0.2]);
 %Load Robot model
 robot = loadrobot("fanucM16ib","DataFormat","column","Gravity",[0 0 -9.81]);
 
-%Matrices for start and end configurations
+%Matrices for start and end configurations joint angles
 endPose = trvec2tform([-1.6,0.8,0.375])*axang2tform([0 1 0 pi/2]);
 pickPose = trvec2tform([0,1.5,0.375])*axang2tform([0 1 0 pi/2]);
 startPose = trvec2tform([1.6,0.8,0.375])*axang2tform([0 1 0 pi/2]);
@@ -52,8 +52,12 @@ pickConfig = ik("tool0",pickPose,weights,robot.homeConfiguration);
 endConfig = ik("tool0",endPose,weights,robot.homeConfiguration);
 
 % Show initial and final positions
-%show(robot,startConfig);
-%show(robot,endConfig);
+figure;
+show(robot,startConfig);
+figure;
+show(robot,pickConfig);
+figure;
+show(robot,endConfig);
 
 %Initialize Joint transforms (for 6 Revolute joints)
 US2 = eye(4);
@@ -64,15 +68,15 @@ US6 = eye(4);
 US7 = eye(4);
 
 %Generate Joint angle trajectory for human moving in Yaxis
-samples = 200;
+samples = 400;
 finPosy = 1;
 finPosx = -1;
 Ymove = [yh:-(yh-finPosy)/(samples-1):finPosy];
 Xmove = [xh:-(xh-finPosx)/(samples-1):finPosx];
 
 %Define Trajectory with a maxVelocity
-maxVel = 1.6;
-endTime = 1;
+maxVel = 0.8;
+endTime = 1; %Defines how long each configuration will last for (i.e from startConfig -> pickConfig (1sec), pickConfig-> EndConfig -> (1 sec) 
 
 %Create trapezium-like velocity -> Quadratic displacement (smooth movement)
 [q,qd,qdd,t] = trapveltraj([homeConfiguration(robot),startConfig,pickConfig,endConfig],samples, "EndTime", endTime);
@@ -99,6 +103,7 @@ for i = 1:length(q)
     US5 = robot.getTransform(q(:,i),'link_4');
     US6 = robot.getTransform(q(:,i),'link_5');
     US7 = robot.getTransform(q(:,i),'link_6');
+    %Update human(s) locations
     for j = 1:numHum
         if humanRandom == false 
             Ph(:,j) = [Xmove(1,i);Ymove(1,i);0];
@@ -111,8 +116,8 @@ for i = 1:length(q)
         end
     end
     clear stop_flag;
-    [stop_flag,distance] = stop_flag(US2, US3, US4,US5,US6,US7, Ph, Uh, Rh); %Update Stop_flag
-    for k = 1:numHum
+    [stop_flag,distance] = stop_flag(US2, US3, US4,US5,US6,US7, Ph, Uh, Rh, maxVel); %Update Stop_flag
+    for k = 1:numHum  %record of all minimum distance across trajectory for each human
         alldist(k,i) = distance(k);
     end
     if stop_flag == 1  %Make sure human not within distance to disturb robot
@@ -120,8 +125,8 @@ for i = 1:length(q)
         break;
     end    
 end
-%get_S()  %Lines to check values of Sp and minimum distance
-%min(alldist,[],'omitnan')
+get_S(maxVel)  %Lines to check values of Sp and minimum distance
+min(alldist,[],2,'omitnan')
 
 
 %plot the trajectory movements
@@ -156,12 +161,10 @@ for i = 1:lastSpot
     s(j).YData = reshape(humanY(j,:),[2,21]);
     s(j).XData = reshape(humanX(j,:),[2,21]);
     end
-
-    %show(bodyFixture,"Parent", ax2)
-
     show(robot,q(:,i),"Parent",ax2,"PreservePlot",false,"Visuals","on");
     axis([-3,3,-0.5,3,0,2]);
-
+    xticks(-3:0.5:3);
+    yticks(-0.5:0.5:3);
     % Update the figure    
     drawnow
    % pause(0.05)
@@ -169,12 +172,12 @@ end
 
 
 %Plot Joint Position
-%{
+
 figure
 plot(t,q)
 xlabel("Time")
 ylabel("Joint Position")
-%}
+
 
 %Plot Joint Velocity
 figure
@@ -183,7 +186,7 @@ xlabel("Time")
 ylabel("Joint Velocity")
 
 %Plot Joint Acceleration
-%{
+
 figure
 plot(t,qdd)
 xlabel("Time")

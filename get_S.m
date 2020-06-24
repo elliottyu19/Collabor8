@@ -1,5 +1,5 @@
-function S = get_S()
-    V_rmax = 1.6; %Maximum robot velocity is 0.4 m/s
+function S = get_S(Vmax)
+    V_rmax = Vmax; %Maximum robot velocity is 0.4 m/s
     V_hmax = 1.6; %Maximum human velocity is 1.6 m/s
     t_reac = 0.1; %The amount of time the robot needs to react to min dist braeach
     t_stop = 0.25; %The maximum amount of time the robot needs to stop

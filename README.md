@@ -4,6 +4,10 @@ Simulation Code for Collabor8 Project
 
 -Uses MATLAB Program to run. (Must have ROBOTICS SYSTEM TOOLBOX installed for the files to run properly)
 
+
+## Precision Analysis
+This folder contain the MATLAB files used for the precision analysis part of the report.
+
 ## Files
 The following is a description of the files used in the simulation
 
